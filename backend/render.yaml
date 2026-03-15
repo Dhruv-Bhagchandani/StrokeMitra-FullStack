@@ -1,21 +1,11 @@
 services:
   - type: web
-    name: slurry-speech-api
+    name: strokemitra-api
     env: python
     region: oregon
     plan: free
-    buildCommand: |
-      # Install Python dependencies
-      pip install -r requirements.txt
-      # Build React frontend (if StrokeMitra exists in parent directory)
-      if [ -d "../StrokeMitra" ]; then
-        cd ../StrokeMitra
-        npm install
-        npm run build
-        mkdir -p ../slurry_speech/static
-        cp -r dist/* ../slurry_speech/static/
-        cd ../slurry_speech
-      fi
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
