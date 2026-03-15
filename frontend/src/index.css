@@ -1,0 +1,145 @@
+:root {
+  /* Medical Grade Palette - Calm & Reassuring */
+  
+  /* Primary - Deep Ocean Teal */
+  --color-primary: 198, 60%, 45%;    /* #2E86B0 */
+  --color-primary-light: 198, 60%, 95%; 
+  
+  /* Secondary - Sage Green */
+  --color-secondary: 150, 40%, 50%;  /* #4CB88C */
+  
+  /* Backgrounds */
+  --bg-app: 210, 20%, 98%;          /* #F5F7FA - Off-white cool */
+  --bg-card: 0, 0%, 100%;           /* #FFFFFF */
+  --bg-overlay: 210, 20%, 10%;      /* Dark overlay */
+
+  /* Text */
+  --text-main: 210, 20%, 20%;       /* Dark Slate */
+  --text-muted: 210, 15%, 50%;      /* Soft Grey */
+  --text-light: 210, 20%, 98%;      /* Light text on dark bg */
+
+  /* Status */
+  --status-success: 150, 60%, 45%;
+  --status-warning: 40, 90%, 60%;
+  --status-error: 0, 70%, 60%;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-med: 0.3s ease-in-out;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: hsl(var(--bg-app));
+  color: hsl(var(--text-main));
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography */
+h1 { font-size: 2rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: var(--space-md); color: hsl(var(--color-primary)); }
+h2 { font-size: 1.5rem; font-weight: 500; margin-bottom: var(--space-sm); }
+p { margin-bottom: var(--space-md); color: hsl(var(--text-muted)); }
+
+/* Layout Utilities */
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-md);
+  width: 100%;
+}
+
+.card {
+  background: hsl(var(--bg-card));
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); /* Soft, elevated shadow */
+  margin-bottom: var(--space-lg);
+  transition: transform var(--transition-med), box-shadow var(--transition-med);
+  border: 1px solid rgba(0,0,0,0.02);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px -4px rgba(0,0,0,0.08);
+}
+
+/* Button Styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: none;
+  font-size: 1rem;
+  gap: var(--space-sm);
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: hsl(var(--color-primary));
+  color: hsl(var(--text-light));
+}
+.btn-primary:hover {
+  background-color: hsl(var(--color-primary), 0.9); /* Slightly lighter/darker via opacity or mix */
+  filter: brightness(1.1);
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border: 2px solid hsl(var(--color-primary));
+  color: hsl(var(--color-primary));
+}
+.btn-secondary:hover {
+  background-color: hsl(var(--color-primary-light));
+}
+
+/* Utility Classes */
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-col { display: flex; flex-direction: column; }
+.text-center { text-align: center; }
+.full-width { width: 100%; }
+.mt-md { margin-top: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+
+/* Animation Utils */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}

@@ -1,0 +1,265 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Risk Score & Severity Classification Configuration
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Slurring Score ────────────────────────────────────────────────────────────
+slurring_score:
+  # Scale: 0-100 (derived from calibrated probability × 100)
+  min_value: 0.0
+  max_value: 100.0
+  decimal_places: 1            # Round to 1 decimal place
+
+  # Confidence intervals
+  compute_confidence_interval: true
+  confidence_level: 0.95       # 95% CI
+
+# ── Severity Classification ───────────────────────────────────────────────────
+severity:
+  # 4-class severity grading
+  classes:
+    none:
+      label: None
+      description: No detectable speech slurring
+      threshold_min: 0.0
+      threshold_max: 20.0
+      color: green
+      color_hex: "#4CAF50"
+      priority: low
+
+    mild:
+      label: Mild
+      description: Slight articulatory imprecision, generally intelligible
+      threshold_min: 20.1
+      threshold_max: 45.0
+      color: yellow
+      color_hex: "#FFC107"
+      priority: low
+
+    moderate:
+      label: Moderate
+      description: Noticeable slurring, reduced intelligibility
+      threshold_min: 45.1
+      threshold_max: 70.0
+      color: orange
+      color_hex: "#FF9800"
+      priority: medium
+
+    severe:
+      label: Severe
+      description: Marked dysarthria, significantly impaired intelligibility
+      threshold_min: 70.1
+      threshold_max: 100.0
+      color: red
+      color_hex: "#F44336"
+      priority: high
+
+  # Thresholds (for easy reference)
+  thresholds: [20.0, 45.0, 70.0]
+
+  # Clinical interpretation
+  clinical_notes:
+    none: "Speech patterns within normal limits for this assessment."
+    mild: "Mild articulatory inconsistencies detected. Recommend monitoring."
+    moderate: "Moderate dysarthric features present. Clinical evaluation recommended."
+    severe: "Severe dysarthria detected. Immediate clinical assessment advised."
+
+# ── Risk Score Computation ────────────────────────────────────────────────────
+risk_score:
+  # Risk score formula:
+  # risk_score = sigmoid(w0 + w1*slurring_score + w2*age_factor + w3*onset_factor) × 100
+
+  # Logistic regression weights
+  weights:
+    w0: -2.5                   # Intercept
+    w1: 0.05                   # Slurring score coefficient
+    w2: 1.2                    # Age factor coefficient
+    w3: 0.8                    # Onset factor coefficient
+
+  # Age factor scaling
+  age_factor:
+    enabled: true
+    min_age: 40                # Age below which factor = 0
+    max_age: 80                # Age above which factor = 1
+    # Formula: min(1.0, max(0.0, (age - min_age) / (max_age - min_age)))
+
+    # Age is a strong stroke risk factor:
+    # - Risk doubles each decade after 55
+    # - 75% of strokes occur in people 65+
+
+  # Symptom onset factor
+  onset_factor:
+    enabled: true
+    golden_window_hours: 4.5   # Stroke "golden window" for intervention
+
+    # Binary factor:
+    # - 1.0 if onset_hours <= golden_window_hours (urgent)
+    # - 0.5 if onset_hours > golden_window_hours (less urgent)
+
+    within_window_value: 1.0
+    outside_window_value: 0.5
+
+  # Baseline risk (if no age/onset provided)
+  baseline_enabled: true
+  baseline_weights:
+    w0: -1.8
+    w1: 0.045
+    w2: 0.0
+    w3: 0.0
+
+# ── Risk Tier Classification ──────────────────────────────────────────────────
+risk_tier:
+  # 4-tier risk classification
+  tiers:
+    low:
+      label: Low
+      description: Low stroke risk based on speech analysis
+      threshold_min: 0.0
+      threshold_max: 25.0
+      color: green
+      color_hex: "#4CAF50"
+      action: "Continue monitoring. No immediate intervention needed."
+      icon: "✓"
+
+    moderate:
+      label: Moderate
+      description: Moderate stroke risk indicators present
+      threshold_min: 25.1
+      threshold_max: 50.0
+      color: yellow
+      color_hex: "#FFC107"
+      action: "Schedule clinical evaluation within 24-48 hours."
+      icon: "⚠"
+
+    high:
+      label: High
+      description: High stroke risk, immediate evaluation recommended
+      threshold_min: 50.1
+      threshold_max: 75.0
+      color: orange
+      color_hex: "#FF9800"
+      action: "Seek medical evaluation within 12 hours. Monitor closely."
+      icon: "⚠⚠"
+
+    critical:
+      label: Critical
+      description: Critical stroke risk, emergency intervention required
+      threshold_min: 75.1
+      threshold_max: 100.0
+      color: red
+      color_hex: "#F44336"
+      action: "EMERGENCY: Call 911 or go to nearest emergency department immediately."
+      icon: "🚨"
+      emergency_alert: true    # Trigger emergency alert in API response
+
+  # Thresholds
+  thresholds: [25.0, 50.0, 75.0]
+
+  # Emergency protocol
+  emergency_threshold: 75.0
+  emergency_contact_enabled: false  # Enable automatic emergency contact (future feature)
+
+# ── Clinical Context Modifiers ────────────────────────────────────────────────
+context_modifiers:
+  # Additional risk factors (optional inputs)
+  additional_factors:
+    - name: hypertension
+      weight: 0.3
+      description: "History of high blood pressure"
+
+    - name: diabetes
+      weight: 0.2
+      description: "Diabetes mellitus"
+
+    - name: atrial_fibrillation
+      weight: 0.4
+      description: "Irregular heartbeat"
+
+    - name: prior_stroke_tia
+      weight: 0.5
+      description: "Previous stroke or TIA"
+
+    - name: smoking
+      weight: 0.15
+      description: "Current smoker"
+
+  # Protective factors
+  protective_factors:
+    - name: recent_evaluation
+      weight: -0.2
+      description: "Recent neurological evaluation (< 6 months)"
+
+# ── Confidence Scoring ────────────────────────────────────────────────────────
+confidence:
+  # Confidence in the prediction (model confidence after calibration)
+  min_confidence_threshold: 0.5  # Minimum confidence for reliable prediction
+
+  # Low confidence handling
+  low_confidence_action: warn   # Options: warn, reject, flag
+  low_confidence_message: "Model confidence is below recommended threshold. Results should be interpreted with caution."
+
+  # Confidence display
+  show_confidence: true
+  confidence_decimal_places: 2
+
+# ── Disclaimer ────────────────────────────────────────────────────────────────
+disclaimer:
+  text: |
+    IMPORTANT MEDICAL DISCLAIMER
+
+    This speech analysis system is for informational and research purposes only.
+    It is NOT a medical diagnostic device and has not been approved by the FDA
+    or other regulatory authorities.
+
+    DO NOT use this system as a substitute for professional medical advice,
+    diagnosis, or treatment. If you suspect a stroke, call emergency services
+    immediately.
+
+    The FAST method remains the gold standard for stroke recognition:
+    - Face drooping
+    - Arm weakness
+    - Speech difficulty
+    - Time to call 911
+
+    Consult qualified healthcare providers for all medical decisions.
+
+  include_in_reports: true
+  include_in_api: true
+  qr_code_url: "https://www.stroke.org/en/about-stroke/stroke-symptoms"
+
+# ── Report Formatting ─────────────────────────────────────────────────────────
+report:
+  # Score badges
+  badges:
+    show_severity_badge: true
+    show_risk_tier_badge: true
+    show_confidence_badge: true
+
+  # Visual elements
+  use_color_coding: true
+  use_icons: true
+
+  # Scoring breakdown
+  show_calculation_details: false  # Show risk score calculation formula
+  show_contributing_factors: true  # List factors contributing to risk score
+
+  # Recommendations
+  include_recommendations: true
+  recommendations_based_on: risk_tier  # Options: risk_tier, severity, both
+
+# ── Validation ────────────────────────────────────────────────────────────────
+validation:
+  # Input validation
+  require_age_for_risk: false    # Age is optional
+  require_onset_for_risk: false  # Onset time is optional
+
+  # Valid age range
+  min_age: 18
+  max_age: 120
+
+  # Valid onset range
+  min_onset_hours: 0.0
+  max_onset_hours: 168.0       # 7 days
+
+  # Sanity checks
+  check_unrealistic_values: true
+  warn_on_edge_cases: true

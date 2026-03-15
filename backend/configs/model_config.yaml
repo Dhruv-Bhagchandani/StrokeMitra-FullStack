@@ -1,0 +1,193 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Model Architecture Configuration
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── HuBERT Encoder ────────────────────────────────────────────────────────────
+hubert:
+  # Pretrained checkpoint from Hugging Face
+  checkpoint: facebook/hubert-large-ll60k
+
+  # Model architecture
+  num_layers: 24               # HuBERT-large has 24 transformer layers
+  hidden_size: 1024            # Hidden dimension
+  num_attention_heads: 16
+  intermediate_size: 4096
+
+  # Layer-weighted pooling
+  layer_pooling:
+    enabled: true              # Use weighted sum of layer outputs
+    learnable_weights: true    # Learn weights during training
+    num_layers: 24             # Number of layers to pool
+    initial_weights: uniform   # Options: uniform, last_four, exponential
+
+  # Fine-tuning strategy
+  freeze_feature_extractor: false  # Freeze CNN feature extractor
+  freeze_encoder_layers: 0         # Number of encoder layers to freeze (0 = all trainable)
+
+  # Dropout
+  attention_dropout: 0.1
+  hidden_dropout: 0.1
+  feat_proj_dropout: 0.0
+  mask_time_prob: 0.05         # Probability of masking time steps (SpecAugment)
+
+  # Output
+  output_hidden_states: true   # Return all layer outputs for pooling
+
+# ── SALR Head (Speaker-Agnostic Latent Regularization) ────────────────────────
+salr:
+  # Classification head
+  classifier:
+    input_dim: 1024            # From HuBERT hidden size
+    hidden_dims: [256]         # Hidden layer dimensions
+    num_classes: 2             # Binary: dysarthric vs. healthy
+    dropout: 0.3
+    activation: relu
+
+  # Embedding head (for triplet loss)
+  embedder:
+    input_dim: 1024
+    hidden_dims: [256]
+    embedding_dim: 128         # Final embedding dimension
+    dropout: 0.3
+    activation: relu
+    normalize: true            # L2 normalize embeddings
+
+  # Loss weights
+  loss_weights:
+    classification: 1.0        # Cross-entropy loss weight
+    triplet: 0.5               # Triplet margin loss weight
+
+  # Triplet loss parameters
+  triplet_loss:
+    margin: 1.0                # Triplet margin
+    mining_strategy: hard      # Options: hard, semi-hard, all
+    distance_metric: euclidean # Options: euclidean, cosine
+
+# ── CNN-BiLSTM-Transformer Branch ─────────────────────────────────────────────
+cnn_bilstm:
+  # CNN encoder for spectrogram
+  cnn:
+    # Input: (batch, channels, freq_bins, time_steps)
+    # channels = 2 (log-mel + wavelet scalogram)
+    input_channels: 2
+
+    # Convolutional blocks
+    conv_blocks:
+      - filters: 32
+        kernel_size: [3, 3]
+        stride: [1, 1]
+        padding: same
+        activation: relu
+        batch_norm: true
+        pool_size: [2, 2]
+        dropout: 0.2
+
+      - filters: 64
+        kernel_size: [3, 3]
+        stride: [1, 1]
+        padding: same
+        activation: relu
+        batch_norm: true
+        pool_size: [2, 2]
+        dropout: 0.3
+
+      - filters: 128
+        kernel_size: [3, 3]
+        stride: [1, 1]
+        padding: same
+        activation: relu
+        batch_norm: true
+        pool_size: [2, 2]
+        dropout: 0.3
+
+  # BiLSTM
+  bilstm:
+    input_size: null           # Auto-computed from CNN output
+    hidden_size: 256
+    num_layers: 2
+    dropout: 0.3
+    bidirectional: true
+
+  # Transformer encoder
+  transformer:
+    d_model: 512               # Must match BiLSTM output (hidden_size * 2 for bidirectional)
+    nhead: 4                   # Number of attention heads
+    num_layers: 2
+    dim_feedforward: 1024
+    dropout: 0.3
+    activation: relu
+
+  # Cross-attention fusion with eGeMAPS
+  cross_attention:
+    enabled: true
+    egemaps_dim: 88            # eGeMAPS feature dimension
+    hidden_dim: 512            # Attention hidden dimension
+    num_heads: 4
+    dropout: 0.2
+
+  # Output head
+  output_head:
+    input_dim: 512             # From transformer output
+    hidden_dims: [256, 128]
+    num_classes: 2             # Binary classification
+    dropout: 0.3
+    activation: relu
+
+# ── Ensemble Model ────────────────────────────────────────────────────────────
+ensemble:
+  # Branch weights (must sum to 1.0)
+  alpha: 0.6                   # Weight for HuBERT-SALR branch
+  # (1 - alpha) = 0.4 for CNN-BiLSTM branch
+
+  # Ensemble strategy
+  strategy: weighted_average   # Options: weighted_average, learned_weights, voting
+
+  # Learned weights (if strategy = learned_weights)
+  learned_weights:
+    use_attention: false       # Use attention mechanism to compute weights
+    temperature: 1.0           # Temperature for softmax
+
+# ── Calibration ───────────────────────────────────────────────────────────────
+calibration:
+  method: platt_scaling        # Options: platt_scaling, temperature_scaling, isotonic
+
+  # Platt scaling: sigmoid(a * logit + b)
+  platt:
+    fit_on: validation         # Fit on validation set
+    solver: lbfgs              # Optimization solver
+    max_iter: 100
+
+  # Temperature scaling: softmax(logit / T)
+  temperature:
+    fit_on: validation
+    initial_temp: 1.5
+    lr: 0.01
+    max_iter: 50
+
+# ── Model Registry (MLflow) ───────────────────────────────────────────────────
+registry:
+  # Model names
+  hubert_salr_name: hubert_salr_dysarthria
+  cnn_bilstm_name: cnn_bilstm_dysarthria
+  ensemble_name: ensemble_dysarthria
+
+  # Versioning
+  auto_version: true           # Auto-increment version
+  stage: production            # Options: staging, production, archived
+
+  # Model serving
+  serving_format: pytorch      # Options: pytorch, onnx, torchscript
+  quantization: none           # Options: none, dynamic, static
+
+  # Placeholder mode (for development)
+  use_placeholder: true        # Return random weights if model not found
+  placeholder_seed: 42         # Random seed for placeholder weights
+
+# ── Checkpoint Management ─────────────────────────────────────────────────────
+checkpoints:
+  save_dir: ./models/checkpoints
+  save_top_k: 3                # Save top 3 checkpoints
+  monitor_metric: val_auc      # Metric to monitor
+  mode: max                    # Options: max, min
+  save_last: true              # Always save last checkpoint
+  filename_template: "epoch={epoch:02d}-val_auc={val_auc:.4f}"

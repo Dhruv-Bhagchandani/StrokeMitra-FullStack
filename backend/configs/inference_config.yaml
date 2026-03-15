@@ -1,0 +1,209 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Inference Configuration
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Device Selection ──────────────────────────────────────────────────────────
+device:
+  # Device for inference: cuda, mps, cpu, or null for auto-detection
+  type: null                   # null = auto-detect (cuda > mps > cpu)
+
+  # CUDA settings
+  cuda_device_id: 0            # GPU device ID if multiple GPUs
+  cuda_visible_devices: "0"    # CUDA_VISIBLE_DEVICES env var
+
+  # Memory management
+  empty_cache_before_inference: true  # Clear CUDA cache before each inference
+  max_memory_allocated_gb: null       # Limit GPU memory usage (null = no limit)
+
+# ── Precision ─────────────────────────────────────────────────────────────────
+precision:
+  # Mixed precision inference
+  use_mixed_precision: true    # Use fp16 on CUDA, bf16 on MPS
+  dtype: null                  # null = auto (fp16 for CUDA, bf16 for MPS, fp32 for CPU)
+
+  # Explicit dtype options: float32, float16, bfloat16
+  fallback_to_fp32: true       # Fallback to fp32 if mixed precision fails
+
+# ── Batch Processing ──────────────────────────────────────────────────────────
+batch:
+  batch_size: 1                # Batch size for inference (1 = single file)
+  num_workers: 2               # DataLoader workers (for batch inference)
+  pin_memory: true             # Pin memory for faster GPU transfer
+  prefetch_factor: 2           # Prefetch batches
+
+# ── Model Loading ─────────────────────────────────────────────────────────────
+model:
+  # Model version
+  version: latest              # Options: latest, v1.0, v1.1, etc.
+
+  # Compilation (PyTorch 2.0+)
+  compile: false               # Use torch.compile for faster inference
+  compile_mode: default        # Options: default, reduce-overhead, max-autotune
+
+  # Model caching
+  cache_models: true           # Cache loaded models in memory
+  cache_dir: ./models/cache
+
+  # Timeout
+  load_timeout: 300            # Timeout for model loading (seconds)
+
+# ── Audio Input Constraints ───────────────────────────────────────────────────
+audio_input:
+  # Duration limits
+  max_duration_sec: 60         # Maximum audio duration
+  min_duration_sec: 5          # Minimum audio duration
+
+  # File size limits
+  max_file_size_mb: 50         # Maximum upload file size
+
+  # Supported formats
+  supported_formats:
+    - wav
+    - mp3
+    - ogg
+    - m4a
+    - flac
+
+  # Automatic resampling
+  auto_resample: true          # Resample to target sample rate
+  target_sample_rate: 16000
+
+# ── Feature Extraction ────────────────────────────────────────────────────────
+features:
+  # Parallel extraction
+  parallel_extraction: true    # Extract features in parallel
+  num_workers: 4               # Number of parallel workers
+
+  # Caching
+  cache_features: true         # Cache extracted features
+  cache_ttl: 3600              # Cache TTL in seconds (1 hour)
+
+  # Timeout
+  extraction_timeout: 30       # Timeout per audio file (seconds)
+
+# ── Inference Pipeline ────────────────────────────────────────────────────────
+pipeline:
+  # Stages
+  stages:
+    - ingestion
+    - feature_extraction
+    - model_inference
+    - calibration
+    - scoring
+    - explainability
+    - risk_assessment
+    - report_generation
+
+  # Skip stages (for debugging)
+  skip_stages: []              # e.g., [explainability, report_generation]
+
+  # Timeout
+  total_timeout: 120           # Total pipeline timeout (seconds)
+
+  # Error handling
+  fail_fast: false             # Stop on first error
+  return_partial_results: true # Return partial results if stage fails
+
+# ── Explainability ────────────────────────────────────────────────────────────
+explainability:
+  # Grad-CAM
+  gradcam:
+    enabled: true
+    target_layer: cnn.conv_blocks.2  # Last CNN block
+    upsampling: bilinear       # Upsampling method for heatmap
+
+  # Attention rollout
+  attention_rollout:
+    enabled: true
+    num_layers: 24             # Number of transformer layers
+    head_fusion: mean          # Options: mean, max, min
+
+  # Segment localization
+  segments:
+    enabled: true
+    min_segment_duration_ms: 200  # Minimum segment duration
+    top_k_segments: 5          # Return top K segments
+    merge_threshold: 0.3       # Merge nearby segments if overlap > threshold
+
+# ── Output Format ─────────────────────────────────────────────────────────────
+output:
+  # Response format
+  format: json                 # Options: json, dict
+  pretty_print: false          # Pretty-print JSON
+
+  # Include fields
+  include_fields:
+    - slurring_score
+    - severity
+    - risk_score
+    - risk_tier
+    - confidence
+    - segments
+    - acoustic_summary
+    - processing_time_ms
+    - model_version
+
+  # Optional fields (include if requested)
+  optional_fields:
+    - raw_features             # Raw feature arrays
+    - attention_weights        # Attention weights from transformer
+    - intermediate_outputs     # Outputs from each pipeline stage
+
+  # Report generation
+  generate_pdf: true           # Generate PDF report
+  generate_json: true          # Generate JSON report
+  store_reports: true          # Store reports to disk
+  report_ttl_days: 30          # Report retention period
+
+# ── Performance Optimization ──────────────────────────────────────────────────
+optimization:
+  # Memory optimization
+  clear_intermediate_outputs: true  # Clear intermediate outputs to save memory
+  use_gradient_checkpointing: false # Gradient checkpointing (training only)
+
+  # Computation optimization
+  use_fused_ops: true          # Use fused operations where available
+  benchmark_mode: false        # PyTorch cudnn.benchmark (for fixed input sizes)
+
+  # I/O optimization
+  async_io: true               # Async file I/O
+  buffer_size: 8192            # I/O buffer size
+
+# ── Logging & Monitoring ──────────────────────────────────────────────────────
+monitoring:
+  # Latency tracking
+  track_latency: true
+  latency_buckets: [0.5, 1.0, 2.0, 5.0, 10.0]  # Histogram buckets (seconds)
+
+  # Resource monitoring
+  track_memory: true
+  track_gpu_utilization: true
+
+  # Metrics export
+  export_prometheus: true      # Export metrics to Prometheus
+  prometheus_port: 9090
+
+  # Request logging
+  log_requests: true
+  log_level: INFO              # Options: DEBUG, INFO, WARNING, ERROR
+
+  # Error tracking
+  track_errors: true
+  error_sampling_rate: 1.0     # Sample 100% of errors
+
+# ── Debugging ─────────────────────────────────────────────────────────────────
+debug:
+  enabled: false
+
+  # Save intermediate outputs
+  save_preprocessed_audio: false
+  save_extracted_features: false
+  save_model_outputs: false
+  save_attention_maps: false
+
+  # Debug output directory
+  debug_dir: ./debug_outputs
+
+  # Profiling
+  profile_inference: false
+  profiler_backend: pytorch    # Options: pytorch, cprofile

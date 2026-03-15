@@ -1,0 +1,104 @@
+{
+  "request_id": "69ab47ea-a2a4-4605-9520-0c8002582289",
+  "slurring_score": 42.5,
+  "severity": "mild",
+  "risk_score": 79.0,
+  "risk_tier": "critical",
+  "confidence": 0.5752250141752996,
+  "segments": [
+    {
+      "start_ms": 0,
+      "end_ms": 7232,
+      "label": "imprecise_consonants",
+      "weight": 0.7507911279315577
+    }
+  ],
+  "acoustic_summary": {
+    "speaking_rate_syllables_per_sec": 2.34,
+    "pitch_mean_hz": 145.3,
+    "pitch_variability_hz": 27.8,
+    "pause_ratio": 0.2,
+    "vowel_space_area": 30864.95,
+    "f1_mean_hz": 519.1,
+    "f2_mean_hz": 1847.0,
+    "voicing_ratio": 1.0
+  },
+  "processing_time_ms": 11092.857122421265,
+  "model_version": "placeholder-v1.0",
+  "emergency_alert": true,
+  "report": {
+    "report_id": "69ab47ea-a2a4-4605-9520-0c8002582289",
+    "generated_at": "2026-03-14T20:06:37.538006",
+    "summary": {
+      "report_id": "69ab47ea-a2a4-4605-9520-0c8002582289",
+      "generated_at": "2026-03-14T20:06:37.538006",
+      "slurring_score": 42.5,
+      "severity": "mild",
+      "risk_score": 79.0,
+      "risk_tier": "critical",
+      "confidence": 0.5752250141752996,
+      "emergency_alert": true
+    },
+    "slurring_analysis": {
+      "slurring_score": 42.5,
+      "severity": "mild",
+      "severity_info": {
+        "level": "mild",
+        "label": "Mild",
+        "color": "yellow",
+        "color_hex": "#FFC107",
+        "description": "Slight articulatory imprecision, generally intelligible",
+        "clinical_note": "Mild articulatory inconsistencies detected. Recommend monitoring."
+      },
+      "confidence": 0.5752250141752996,
+      "model_version": "placeholder-v1.0"
+    },
+    "risk_assessment": {
+      "risk_score": 79.0,
+      "risk_tier": "critical",
+      "tier_info": {
+        "tier": "critical",
+        "label": "Critical",
+        "color": "red",
+        "color_hex": "#F44336",
+        "description": "Critical stroke risk, emergency intervention required",
+        "action": "EMERGENCY: Call 911 or go to nearest emergency department immediately.",
+        "icon": "\ud83d\udea8",
+        "is_emergency": true
+      },
+      "contributing_factors": {
+        "slurring_score": 42.5,
+        "age_factor": 0.75,
+        "patient_age": 70,
+        "onset_factor": 1.0,
+        "onset_hours": 3.0,
+        "within_golden_window": true
+      },
+      "emergency_alert": true
+    },
+    "acoustic_summary": {
+      "speaking_rate_syllables_per_sec": 2.34,
+      "pitch_mean_hz": 145.3,
+      "pitch_variability_hz": 27.8,
+      "pause_ratio": 0.2,
+      "vowel_space_area": 30864.95,
+      "f1_mean_hz": 519.1,
+      "f2_mean_hz": 1847.0,
+      "voicing_ratio": 1.0
+    },
+    "segments": [
+      {
+        "start_ms": 0,
+        "end_ms": 7232,
+        "duration_ms": 7232,
+        "label": "imprecise_consonants",
+        "weight": 0.7507911279315577,
+        "time_range": "0.00s - 7.23s"
+      }
+    ],
+    "processing_metadata": {
+      "processing_time_ms": 11092.857122421265,
+      "audio_duration_sec": 7.232
+    }
+  }
+}

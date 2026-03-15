@@ -1,0 +1,171 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Feature Extraction Configuration
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Audio Preprocessing ───────────────────────────────────────────────────────
+audio:
+  sample_rate: 16000           # Target sample rate (Hz)
+  mono: true                   # Convert to mono
+  duration_min: 5.0            # Minimum duration (seconds)
+  duration_max: 60.0           # Maximum duration (seconds)
+
+  # Loudness normalization (ITU-R BS.1770)
+  normalize_loudness: true
+  target_loudness: -23.0       # LUFS (Loudness Units Full Scale)
+
+  # Silence trimming
+  trim_silence: true
+  top_db: 30                   # Threshold for silence detection (dB)
+  frame_length: 2048
+  hop_length: 512
+
+# ── Voice Activity Detection (VAD) ────────────────────────────────────────────
+vad:
+  enabled: true
+  model: silero_v6             # Silero VAD v6
+  threshold: 0.5               # Speech probability threshold
+  min_speech_duration_ms: 250  # Minimum speech segment duration
+  min_silence_duration_ms: 100 # Minimum silence duration between segments
+  window_size_samples: 512     # VAD window size
+  speech_pad_ms: 30            # Padding around speech segments
+
+# ── MFCC Features ─────────────────────────────────────────────────────────────
+mfcc:
+  n_mfcc: 13                   # Number of MFCCs
+  n_fft: 2048                  # FFT window size
+  hop_length: 512              # Hop length for STFT
+  win_length: 2048             # Window length for STFT
+  window: hamming              # Window function
+  n_mels: 128                  # Number of mel bands
+  fmin: 0                      # Minimum frequency
+  fmax: 8000                   # Maximum frequency (8kHz for speech)
+
+  # Delta features
+  compute_delta: true          # First-order delta (velocity)
+  compute_delta_delta: true    # Second-order delta (acceleration)
+  delta_width: 9               # Width of delta window
+
+  # Output: 13 MFCCs + 13 deltas + 13 delta-deltas = 39 dimensions
+
+# ── Log-Mel Spectrogram ───────────────────────────────────────────────────────
+spectrogram:
+  n_mels: 128                  # Number of mel bands
+  n_fft: 2048                  # FFT window size
+  hop_length: 512              # Hop length
+  win_length: 2048             # Window length
+  window: hamming
+  fmin: 0
+  fmax: 8000
+  power: 2.0                   # Power spectrogram (magnitude squared)
+
+  # Logarithmic scaling
+  log_offset: 1e-6             # Small constant to avoid log(0)
+
+  # Normalization
+  normalize: true              # Min-max normalization per spectrogram
+  norm_type: minmax            # Options: minmax, standard, none
+
+# ── Wavelet Scalogram (CWT) ───────────────────────────────────────────────────
+wavelet:
+  enabled: true
+  wavelet_type: morl            # Morlet wavelet
+  scales_min: 1
+  scales_max: 128
+  num_scales: 128
+  sampling_period: 0.000625     # 1 / 16000 Hz
+
+# ── Prosodic Features ─────────────────────────────────────────────────────────
+prosody:
+  # Fundamental frequency (F0) extraction
+  f0:
+    method: crepe              # Use torchcrepe (PyTorch implementation)
+    model_capacity: full       # Options: tiny, small, medium, large, full
+    fmin: 50                   # Minimum F0 (Hz)
+    fmax: 500                  # Maximum F0 (Hz)
+    hop_length: 512            # Hop length
+    batch_size: 512            # Batch size for CREPE model
+    device: null               # null = auto-detect (cuda/mps/cpu)
+
+  # Energy contour
+  energy:
+    frame_length: 2048
+    hop_length: 512
+    center: true
+
+  # Speaking rate estimation
+  speaking_rate:
+    method: energy_peaks       # Heuristic: syllable count from energy peaks
+    min_syllable_duration: 0.1 # Minimum syllable duration (seconds)
+    energy_threshold_percentile: 40  # Energy percentile for peak detection
+
+  # Pause ratio
+  pause:
+    silence_threshold_db: -40  # Threshold for silence (dB)
+    min_pause_duration: 0.2    # Minimum pause duration (seconds)
+
+# ── Formant Features ──────────────────────────────────────────────────────────
+formants:
+  method: praat                # Use Praat via parselmouth
+  max_num_formants: 5          # Track up to 5 formants
+  ceiling_hz: 5500             # Formant ceiling (Hz) - typical for adult males
+
+  # Gender-specific ceilings (optional, override ceiling_hz)
+  ceiling_male: 5000
+  ceiling_female: 5500
+  ceiling_child: 6500
+
+  # Window settings
+  window_length: 0.025         # 25ms window
+  pre_emphasis: 0.97           # Pre-emphasis coefficient
+
+  # Extract F1, F2, F3 statistics
+  extract_f1: true
+  extract_f2: true
+  extract_f3: true
+  extract_f4: false
+  extract_f5: false
+
+  # Vowel space area (VSA)
+  compute_vsa: true            # Compute vowel space area (acoustic metric)
+  vsa_formants: [f1, f2]       # Use F1 and F2 for VSA
+
+# ── eGeMAPS Features (OpenSMILE) ──────────────────────────────────────────────
+egemaps:
+  enabled: true
+  config_file: eGeMAPS_v02.conf  # OpenSMILE config file
+  feature_set: eGeMAPS           # Options: eGeMAPS, GeMAPS, ComParE
+  feature_level: functionals     # Options: lld (low-level descriptors), functionals
+
+  # eGeMAPS v02 produces 88 features:
+  # - Frequency related (pitch, jitter)
+  # - Energy/amplitude related (shimmer, loudness)
+  # - Spectral (alpha ratio, harmonic difference, spectral slopes)
+  # - Temporal (rate of loudness peaks, etc.)
+
+  output_dim: 88               # Expected output dimensionality
+
+# ── Feature Fusion ────────────────────────────────────────────────────────────
+fusion:
+  # Concatenate all features
+  features_to_fuse:
+    - mfcc                     # 39-dim (13 + 13 delta + 13 delta-delta)
+    - prosody                  # Variable dim (F0, energy, rate, pause ratio)
+    - formants                 # Variable dim (F1, F2, F3 stats + VSA)
+    - egemaps                  # 88-dim
+
+  # Normalization strategy
+  normalize_per_feature: true  # Normalize each feature type independently
+  normalization_method: standard  # Options: standard (z-score), minmax, none
+
+  # Handle missing features
+  missing_value_strategy: zero # Options: zero, mean, drop
+
+  # Output
+  output_format: concatenated  # Options: concatenated, dict
+
+# ── Caching ───────────────────────────────────────────────────────────────────
+cache:
+  enabled: true                # Cache extracted features to disk
+  cache_dir: ./data/features_cache
+  use_hash: true               # Use file hash as cache key
+  compression: gzip            # Options: gzip, lz4, none
