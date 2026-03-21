@@ -4,7 +4,7 @@ export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/ap
 // In production (when served by FastAPI): use relative URL (same origin, no CORS)
 // In development (Vite dev server): use localhost:8000
 export const SPEECH_API_URL = import.meta.env.VITE_SPEECH_API_URL ||
-    (import.meta.env.PROD ? '' : 'http://localhost:8000');
+    (import.meta.env.PROD ? 'https://dhruvb1906-strokemitra-api.hf.space' : 'http://localhost:8000');
 
 export const startSession = async () => {
     try {
